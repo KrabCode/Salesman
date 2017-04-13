@@ -39,7 +39,6 @@ class Path{
      }else{
        pointB = orderedPoints.get(0);
      }
-     text(pointA.toString(),pointA.x, pointA.y);
      line(pointA.x, pointA.y, pointB.x, pointB.y);
    }
  }

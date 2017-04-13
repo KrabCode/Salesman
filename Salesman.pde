@@ -2,22 +2,21 @@
 Map map;
 private int xMax;
 private int yMax;
-private int nodeCount = 15;
+private int nodeCount = 22;
 
 //PATHS
 private ArrayList<Path> paths;
-private int pathCount = 100;
+private int pathCount = 20;
 
 //MUTATIONS
-private int childCount = 1000;
-private int magnitude = 2;
-private float lastWin = 0;
+private int childCount = 80;
+private int magnitude = 1;
 
 public void setup()
 {
   fullScreen();
   background(0);
-  frameRate(30);
+  frameRate(3);
   xMax = width;
   yMax = height;
   
@@ -33,7 +32,6 @@ public void setup()
   }
   map.display();
   paths = sortPaths(paths);
-  lastWin = paths.get(0).getLength();
 }
 
 public void draw()
@@ -47,12 +45,12 @@ public void draw()
 
 private void nextGen()
 {
-  while(lastWin < paths.get(0).getLength())
-  {
      replaceSuckers();
      mutateEveryone();
      paths = sortPaths(paths);
-  }
+     stroke(255);
+     fill(255);
+     text(paths.get(0).getLength(), width/2, height - 50);
 }
 
 
@@ -84,7 +82,7 @@ private ArrayList<Path> sortPaths(ArrayList<Path> toSort)
 
 private void replaceSuckers()
 {
-  for(int i = paths.size() / 2; i < paths.size(); i++)
+  for(int i = paths.size() / 4; i < paths.size(); i++)
   {
     Path p = new Path();
     p.generateRandomPath(map.getNodes());
