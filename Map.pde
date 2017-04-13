@@ -1,6 +1,7 @@
 class Map{
  private ArrayList<PVector> nodes;
  private int nodeRadius = 10;
+ 
  public void generate(int xMax, int yMax, int nodeCount)
  {
    nodes = new ArrayList<PVector>();
