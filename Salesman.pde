@@ -2,27 +2,33 @@
 Map map;
 private int xMax;
 private int yMax;
-private int nodeCount = 30;
+private int nodeCount = 20;
 
 //PATHS
 private ArrayList<Path> paths;
 private int pathCount = nodeCount;
 
 //MUTATIONS
-private int childCount = pathCount * 3;
+private int childCount = pathCount;
 private int magnitude = 1;
-private int generationsWithoutImprovement = 0;
+private int generationsWithoutImprovement;
 private int generations;
 private float lastBestLength = 0;
 
 public void setup()
 { 
-  size(1000, 800);
   background(0);
-  frameRate(3);
+  frameRate(30);
   xMax = width;
   yMax = height;
-  
+  runNewMap();
+}
+
+void runNewMap()
+{
+  generationsWithoutImprovement = 0;
+  generations = 0;
+
   map = new Map();
   map.generate(xMax,yMax,nodeCount);
   
@@ -36,14 +42,25 @@ public void setup()
   map.display();
   paths = sortPaths(paths);
   lastBestLength = paths.get(0).getLength();
+  
 }
-
- 
 
 public void draw()
 {
-  //if(generationsWithoutImprovement < 20)
+  //if(generationsWithoutImprovement < generations +20/2)
   {
+    int w = 0;
+    int h = 0;
+    fill(50);
+    while(w<width) 
+    while (h <height)
+     if(randomBool()){
+       point(w, h);
+       w++;
+       h++;
+     }
+      
+    
     nextGen();
     background(0);
     map.display();
@@ -52,7 +69,10 @@ public void draw()
   }
 }
 
-
+void mousePressed()
+{
+  if(mouseX < width/2 && mouseY < height/2) runNewMap();
+}
 
 private void nextGen()
 {
@@ -121,8 +141,7 @@ public ArrayList<Path> sortPaths(ArrayList<Path> toSort)
   float[] lengths = new float[toSort.size()];
   for(int i = 0; i < toSort.size(); i++)
   {
-    Path p = toSort.get(i);
-    lengths[i] =  p.getLength();
+    lengths[i] =  toSort.get(i).getLength();
   }
   lengths = sort(lengths);
   ArrayList<Path> sorted = new ArrayList<Path>();
@@ -130,10 +149,9 @@ public ArrayList<Path> sortPaths(ArrayList<Path> toSort)
     Path pathOfJLength = new Path();
     for(int k = 0; k < toSort.size(); k++)
     {
-      Path test = (Path)toSort.get(k);
-      if(test.getLength() == lengths[j])
+      if(toSort.get(k).getLength() == lengths[j])
       {
-        pathOfJLength = test;
+        pathOfJLength = toSort.get(k);
         break;
       }
     }
@@ -151,9 +169,9 @@ private void displayStats()
     text("gen " + generations +": " + paths.get(0).getLength(), 30, 40);
     fill(0);
     stroke(255);
-    rect(25, 60, 120, 30);
+    rect(25, 60, 80, 30);
     fill(255);
-    text("no improvement: " + generationsWithoutImprovement, 30, 80);
+    text("stagnant: " + generationsWithoutImprovement, 30, 80);
     fill(0);
     stroke(255);
     rect(25, 100, 80, 30);

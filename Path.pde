@@ -30,7 +30,7 @@ class Path{
  
  public void display()
  {
-   stroke(255);
+   stroke(255,100,0);
    for(PVector pointA : orderedPoints)
    {
      PVector pointB;
