@@ -1,6 +1,6 @@
 class Map{
  private ArrayList<PVector> nodes;
- private int nodeRadius = 10;
+ private int nodeRadius = 20;
  
  public void generate(int xMax, int yMax, int nodeCount)
  {
@@ -15,15 +15,10 @@ class Map{
  
  public ArrayList<PVector> getNodes()
  {
+   if(nodes == null) nodes = new ArrayList<PVector>();
+   
    return nodes;
  }
  
- public void display()
- {
-  for(PVector node : nodes)
-  {
-   fill(150);
-   ellipse(node.x, node.y, nodeRadius, nodeRadius); 
-  }
- }
+
 }

@@ -1,32 +1,48 @@
+
 //MAP
 Map map;
 private int xMax;
 private int yMax;
-private int nodeCount = 20;
+private int nodeCount = 16;
 
 //PATHS
 private ArrayList<Path> paths;
-private int pathCount = nodeCount;
+private int pathCount =  nodeCount;
 
 //MUTATIONS
-private int childCount = pathCount;
-private int magnitude = 1;
-private int generationsWithoutImprovement;
+private int childCount = pathCount*3;
+private int magnitude = 3;
+
 private int generations;
-private float lastBestLength = 0;
 
 public void setup()
 { 
-  background(0);
+  fullScreen();
   frameRate(30);
   xMax = width;
   yMax = height;
   runNewMap();
 }
 
+public void draw()
+{
+  if(paths.get(0).stagnantGenerations > 200)
+  {
+    runNewMap();
+  }else{
+    nextGen();
+    noStroke();
+    fill( 0, 0, 0,80);
+    rect(0, 0, width, height);
+    displayBestPath();
+    displaySuckers(5);
+    displayStats();
+  }
+}
+
 void runNewMap()
 {
-  generationsWithoutImprovement = 0;
+  background(0);
   generations = 0;
 
   map = new Map();
@@ -36,42 +52,45 @@ void runNewMap()
   for(int i = 0; i < pathCount; i++)
   {
     Path path = new Path();
-    path.generateRandomPath(map.getNodes());
+    path.generateRandomPath();
     paths.add(path);
+    path.stagnantGenerations = 0;
+    path.lastBestLength = path.getFitness();
   }
-  map.display();
   paths = sortPaths(paths);
-  lastBestLength = paths.get(0).getLength();
-  
+   
 }
 
-public void draw()
+private void displayBestPath()
 {
-  //if(generationsWithoutImprovement < generations +20/2)
+  paths.get(0).display(
+    /*location:*/   new PVector(50,200),    
+    /*opacity: */   paths.get(0).stagnantGenerations,
+    /*Xscale: */    0.7,
+    /*Yscale: */    0.6
+    );
+}
+
+private void displaySuckers(int count)
+{
+  for(int i = 1; i < count + 1; i++)
   {
-    int w = 0;
-    int h = 0;
-    fill(50);
-    while(w<width) 
-    while (h <height)
-     if(randomBool()){
-       point(w, h);
-       w++;
-       h++;
-     }
-      
+    int x = width - width / 5;
+    int y = 0 + (i - 1) * height/count;
+    paths.get(i).display(
+    /*location:*/   new PVector(x,y),    
+    /*opacity: */   paths.get(i).stagnantGenerations * 2,
+    /*Xscale: */    0.2,
+    /*Yscale: */    0.2
+    );
     
-    nextGen();
-    background(0);
-    map.display();
-    paths.get(0).display();
-    displayStats();
+    fill(10);
+    stroke(25);
+    rect (x, y, 30 , 25);
+    fill(255);
+    text((i+1)+".",  x+5, y + 20);
   }
-}
-
-void mousePressed()
-{
-  if(mouseX < width/2 && mouseY < height/2) runNewMap();
+      
 }
 
 private void nextGen()
@@ -81,46 +100,51 @@ private void nextGen()
    paths = sortPaths(paths);
    generations++;
    
-   // Count the generations that failed to improve upon their parent paths
-   if(lastBestLength > paths.get(0).getLength())
+   for(Path p : paths)
    {
-    lastBestLength = paths.get(0).getLength();
-    generationsWithoutImprovement = 0;
-   }else{
-     generationsWithoutImprovement++;
+     // Count the generations that failed to improve upon their parent paths
+     if(p.lastBestLength > p.getFitness() || p.lastBestLength == 0)
+     {
+        p.lastBestLength = p.getFitness();
+        p.stagnantGenerations = 0;
+     }else{
+        p.stagnantGenerations++;
+     }
    }
 }
 
 private void replaceSuckers()
 {
-  for(int i = paths.size() / 2; i < paths.size(); i++)
+  for(int i = paths.size() - paths.size() / 6; i < paths.size(); i++)
   {
     Path p = new Path();
-    p.generateRandomPath(map.getNodes());
+    p.generateRandomPath();
     paths.set(i, p);
   }
 }
 
 private void mutateWinners()
 {
-  for(int i = paths.size() / 2; i > 0 ; i--)
+  for(int i = paths.size() / 6; i > 0 ; i--)
   {
-      if(randomBool())
-      {
-         Path parent = paths.get(i);
-         ArrayList<Path> children = new ArrayList<Path>();     
-         for(int j = 0; j < childCount; j++) children.add(parent.mutate(magnitude));
-         children = sortPaths(children);     
-         if(children.get(0).getLength() < parent.getLength())
-         {
-           paths.set(i,children.get(0));
-         }
-      }else{
-        
-         Path parent = paths.get(i);
-         Path mate = paths.get(i + 1);
-         paths.set(i, parent.crossover(mate, map.getNodes().size()));
-      }
+    Path parent = paths.get(i);
+    ArrayList<Path> children = new ArrayList<Path>(); 
+    if(randomBool())
+    {  
+       for(int j = 0; j < childCount; j++) children.add(parent.mutate(magnitude));
+       
+    }else{        
+       for(int j = paths.size() / 2; j > 0 ; j--)
+        {
+           Path mate = paths.get(i + 1);
+           children.add(parent.crossover(mate));
+        }
+    }
+    children = sortPaths(children);     
+    if(children.get(0).getFitness() < parent.getFitness())
+    {
+     paths.set(i,children.get(0));
+    }
   }  
   /* Crank up the heat in response to generations that failed to improve upon their parent paths
   childCount += generationsWithoutImprovement;
@@ -136,12 +160,24 @@ private void mutateWinners()
   }*/
 }
 
-public ArrayList<Path> sortPaths(ArrayList<Path> toSort)
+private float getAverageFitness()
+{
+  float total = 0;
+  int count = 0;
+  for(Path p : paths)
+  {
+    total += p.getFitness();
+    count++;
+  }
+  return total/count;
+}
+
+private ArrayList<Path> sortPaths(ArrayList<Path> toSort)
 {
   float[] lengths = new float[toSort.size()];
   for(int i = 0; i < toSort.size(); i++)
   {
-    lengths[i] =  toSort.get(i).getLength();
+    lengths[i] =  toSort.get(i).getFitness();
   }
   lengths = sort(lengths);
   ArrayList<Path> sorted = new ArrayList<Path>();
@@ -149,7 +185,7 @@ public ArrayList<Path> sortPaths(ArrayList<Path> toSort)
     Path pathOfJLength = new Path();
     for(int k = 0; k < toSort.size(); k++)
     {
-      if(toSort.get(k).getLength() == lengths[j])
+      if(toSort.get(k).getFitness() == lengths[j])
       {
         pathOfJLength = toSort.get(k);
         break;
@@ -162,32 +198,39 @@ public ArrayList<Path> sortPaths(ArrayList<Path> toSort)
 
 private void displayStats()
 {
-    fill(0);
-    stroke(255);
-    rect(25, 20, 120, 30);
-    fill(255);
-    text("gen " + generations +": " + paths.get(0).getLength(), 30, 40);
-    fill(0);
-    stroke(255);
-    rect(25, 60, 80, 30);
-    fill(255);
-    text("stagnant: " + generationsWithoutImprovement, 30, 80);
-    fill(0);
-    stroke(255);
-    rect(25, 100, 80, 30);
-    fill(255);
-    text("nodes: " + nodeCount, 30, 120);     
-    fill(0);
-    stroke(255);
-    rect(25, 140, 80, 30);
-    fill(255);
-    text("paths: " + paths.size(), 30, 160);     
-    fill(0);
-    stroke(255);
-    rect(25, 180, 80, 30);
-    fill(255);
-    text("children: " + childCount, 30, 200);    
+    String[] statsText = new String[]{
+    /*0*/    "length",       
+    /*1*/    "average",
+    /*2*/    "generation",   
+    /*3*/    "stagnant",
+    };   
     
+    PFont mono;
+    mono = loadFont("LiberationMono-20.vlw");
+    textFont(mono);
+    
+    for(int i = 0; i < statsText.length; i++)
+    {
+      fill(10);
+      stroke(25);
+      rect (25, 20 + i * 40, 270 , 30);
+      Object value = 0;
+      switch(i)
+      {
+       case 0: value = paths.get(0).lastBestLength;       break;
+       case 1: value = getAverageFitness();               break;
+       case 2: value = generations;                       break;
+       case 3: value = paths.get(0).stagnantGenerations;  break;
+      }
+      fill(255);
+      stroke(255);
+      text(statsText[i] + ": ", 35, 43 + i * 40);
+      text(value + "", 180, 43 + i * 40);
+    }    
+}
+public void mousePressed()
+{
+  if(mouseX < width/2 && mouseY < height/2) runNewMap();
 }
 
 boolean randomBool() {
